@@ -3,10 +3,9 @@ package com.example;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 import java.util.Objects;
@@ -56,25 +55,23 @@ public class ApplicationTest {
     @Nested
     @DisplayName("API Endpoint Tests")
     class ApiTests {
-        @Autowired
-        TestRestTemplate restTemplate;
 
         @Test
         @DisplayName("api - root endpoint returns Hello, World!")
-        void testRootEndpoint() throws Exception {
-            ResponseEntity<String> response = restTemplate.getForEntity(server.getUri().toURL().toString(), String.class);
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.OK));
-            assertThat(response.getBody(), equalTo("Hello, World!"));
+        void testRootEndpoint() {
+            RestClient restClient = RestClient.create(server.getUri());
+            assertThat(restClient.get().retrieve().body(String.class), equalTo("Hello, World!"));
         }
 
         @Test
         @DisplayName("api - health endpoint returns health json")
-        void testHealthEndpoint() throws Exception {
-            ResponseEntity<Object> response = restTemplate.getForEntity(server.getUri().resolve("/health").toURL().toString(), Object.class);
-            assertThat(response.getStatusCode(), equalTo(HttpStatus.OK));
-            assertThat(response.getBody(), isA(Map.class));
-            Map<?, ?> body = (Map<?, ?>) response.getBody();
-            assertThat(Objects.requireNonNull(body).get("isAvailable"), equalTo(true));
+        void testHealthEndpoint() {
+            RestClient restClient = RestClient.create(server.getUri());
+            assertThat(Objects.requireNonNull(restClient.get().uri("/health")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(Map.class))
+                    .get("isAvailable"), equalTo(true));
         }
     }
 }
